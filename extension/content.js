@@ -39,7 +39,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       },
       body: JSON.stringify({ message: text }),
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(async (data) => {
         // Use original text element and fallback to current active text element
         const activeElement =
@@ -87,11 +92,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })
       .catch((error) => {
         restoreCursor();
+        console.error("Extension error:", error);
         alert(
           "Error. Make sure you're running the server by following the instructions on https://github.com/gragland/chatgpt-chrome-extension. Also make sure you don't have an adblocker preventing requests to localhost:3000."
         );
-        throw new Error(error);
       });
+    
+    // Return true to indicate we'll respond asynchronously
+    return true;
   }
 });
 
@@ -103,5 +111,8 @@ const showLoadingCursor = () => {
 };
 
 const restoreCursor = () => {
-  document.getElementById("cursor_wait").remove();
+  const cursorStyle = document.getElementById("cursor_wait");
+  if (cursorStyle) {
+    cursorStyle.remove();
+  }
 };
